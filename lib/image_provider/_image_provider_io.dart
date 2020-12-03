@@ -1,4 +1,4 @@
-import 'dart:async' show Future, StreamController;
+import 'dart:async' show Future, StreamController, scheduleMicrotask;
 import 'dart:ui' as ui show Codec;
 
 import 'package:flutter/foundation.dart';
@@ -111,6 +111,13 @@ class OptimizedCacheImageProvider
         }
       }
     } catch (e) {
+      // Depending on where the exception was thrown, the image cache may not
+      // have had a chance to track the key in the cache at all.
+      // Schedule a microtask to give the cache a chance to add the key.
+      scheduleMicrotask(() {
+        PaintingBinding.instance.imageCache.evict(key);
+      });
+
       errorListener?.call();
       rethrow;
     } finally {
